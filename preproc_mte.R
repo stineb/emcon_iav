@@ -3,7 +3,7 @@ library(ncdf4)
 
 source("../utilities/get_days_since.R")
 
-nc <- nc_open( paste0( myhome, "data/gpp_mte/gpp_mte.nc" ) )
+nc <- nc_open( paste0( myhome, "data/gpp_mte/gpp_MTE.nc" ) )
 gpp <- ncvar_get( nc, varid="gpp" )
 lon <- nc$dim$lon$vals
 lat <- nc$dim$lat$vals
