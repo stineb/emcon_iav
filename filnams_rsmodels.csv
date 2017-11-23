@@ -1,0 +1,6 @@
+dir,filename,model,year_start,year_end
+gpp_mte,gpp_mte_fluxcom,MTE_FLUXCOM,1980,2013
+gpp_mte,gpp_mte,MTE,1982,2011
+gpp_modis,gpp_modis,MODIS,2000,2015
+gpp_vpm,gpp_vpm,VPM,2000,2016
+gpp_bess,gpp_bess,BESS,2001,2015

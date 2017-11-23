@@ -5,7 +5,7 @@
 ##----------------------------------------------------
 cd CABLE/S2
 
-if [ -e CABLE-POP_S2_gpp_ANN.nc ]
+if [ ! -e CABLE-POP_S2_nbp_ANN.nc  || [ ! -e CABLE-POP_S2_gpp_ANN.nc ]]
 then
 
 	## select years
@@ -43,8 +43,8 @@ cdo fldsum tmp4.nc tmp5.nc
 cdo mulc,1e-15 tmp5.nc CABLE-POP_S2_gpp_GLOB.nc
 
 ## detrend
-cdo detrend -selname,nbp CABLE-POP_S2_nbp_GLOB.nc CABLE-POP_S2_nbp_DETR.nc
-cdo detrend -selname,gpp CABLE-POP_S2_gpp_GLOB.nc CABLE-POP_S2_gpp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,nbp CABLE-POP_S2_nbp_GLOB.nc CABLE-POP_S2_nbp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,gpp CABLE-POP_S2_gpp_GLOB.nc CABLE-POP_S2_gpp_DETR.nc
 
 ## variance
 cdo timvar CABLE-POP_S2_nbp_DETR.nc CABLE-POP_S2_nbp_VAR.nc
@@ -55,13 +55,16 @@ rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc
 
 cd ../..
 
+#----------------------------------------------------
+# CLASS-CTEM: messed up dimensions - therefore not used
+#----------------------------------------------------
 
 ##----------------------------------------------------
 ## CLM
 ##----------------------------------------------------
 cd CLM/S2
 
-if [ -e CLM4.5_S2_gpp_ANN.nc ]
+if [ ! -e CLM4.5_S2_nbp_ANN.nc  || [ ! -e CLM4.5_S2_gpp_ANN.nc ]]
 then
 
 	## select years
@@ -99,12 +102,70 @@ cdo fldsum tmp4.nc tmp5.nc
 cdo mulc,1e-15 tmp5.nc CLM4.5_S2_gpp_GLOB.nc
 
 ## detrend
-cdo detrend -selname,nbp CLM4.5_S2_nbp_GLOB.nc CLM4.5_S2_nbp_DETR.nc
-cdo detrend -selname,gpp CLM4.5_S2_gpp_GLOB.nc CLM4.5_S2_gpp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,nbp CLM4.5_S2_nbp_GLOB.nc CLM4.5_S2_nbp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,gpp CLM4.5_S2_gpp_GLOB.nc CLM4.5_S2_gpp_DETR.nc
 
 ## variance
 cdo timvar CLM4.5_S2_nbp_DETR.nc CLM4.5_S2_nbp_VAR.nc
 cdo timvar CLM4.5_S2_gpp_DETR.nc CLM4.5_S2_gpp_VAR.nc
+
+## remove temporary files
+rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
+cd ../..
+
+
+##----------------------------------------------------
+## DLEM - can't convert to normal NetCDF
+##----------------------------------------------------
+cd DLEM/S2
+
+if [ ! -e CLM4.5_S2_nbp_ANN.nc  || [ ! -e CLM4.5_S2_gpp_ANN.nc ]]
+then
+
+	## select years
+	cdo -f nc2 copy DLEM_S2_nbp.nc4 DLEM_S2_nbp.nc
+	cdo -f nc2 copy DLEM_S2_gpp.nc4 DLEM_S2_gpp.nc
+
+	cdo -f nc2 selyear,1901/2015 DLEM_S2_nbp.nc DLEM_S2_nbp_SUB.nc
+	cdo -f nc2 selyear,1901/2015 DLEM_S2_gpp.nc DLEM_S2_gpp_SUB.nc
+
+	## multiply with days per month
+	cdo muldpm DLEM_S2_nbp_SUB.nc DLEM_S2_nbp_DPM.nc
+	cdo muldpm DLEM_S2_gpp_SUB.nc DLEM_S2_gpp_DPM.nc
+
+	## multiply with seconds per day and convert from kg C to g C
+	cdo mulc,86400000 DLEM_S2_nbp_DPM.nc DLEM_S2_nbp_SPM.nc
+	cdo mulc,86400000 DLEM_S2_gpp_DPM.nc DLEM_S2_gpp_SPM.nc
+
+	## get annual sums
+	cdo yearsum DLEM_S2_nbp_SPM.nc DLEM_S2_nbp_ANN.nc
+	cdo yearsum DLEM_S2_gpp_SPM.nc DLEM_S2_gpp_ANN.nc
+
+fi
+
+## get global totals
+## NBP
+cdo gridarea DLEM_S2_nbp_ANN.nc gridarea.nc
+cdo mulc,1 -seltimestep,1 DLEM_S2_nbp_ANN.nc tmp.nc
+cdo div tmp.nc tmp.nc ones.nc
+cdo selname,nbp ones.nc mask.nc
+cdo mul mask.nc gridarea.nc gridarea_masked.nc
+cdo mul gridarea_masked.nc DLEM_S2_nbp_ANN.nc tmp2.nc
+cdo fldsum tmp2.nc tmp3.nc
+cdo mulc,1e-15 tmp3.nc DLEM_S2_nbp_GLOB.nc
+
+## GPP
+cdo mul gridarea_masked.nc DLEM_S2_gpp_ANN.nc tmp4.nc
+cdo fldsum tmp4.nc tmp5.nc
+cdo mulc,1e-15 tmp5.nc DLEM_S2_gpp_GLOB.nc
+
+## detrend
+cdo detrend -selyear,1982/2011 -selname,nbp DLEM_S2_nbp_GLOB.nc DLEM_S2_nbp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,gpp DLEM_S2_gpp_GLOB.nc DLEM_S2_gpp_DETR.nc
+
+## variance
+cdo timvar DLEM_S2_nbp_DETR.nc DLEM_S2_nbp_VAR.nc
+cdo timvar DLEM_S2_gpp_DETR.nc DLEM_S2_gpp_VAR.nc
 
 ## remove temporary files
 rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
@@ -115,10 +176,10 @@ cd ../..
 ##----------------------------------------------------
 cd ISAM/S2
 
-if [ -e ISAM_S2_gpp_ANN.nc ]
+if [ ! -e ISAM_S2_nbp_ANN.nc ] || [ ! -e ISAM_S2_gpp_ANN.nc ]
 then
 
-	## select years
+	## select years. time steps 42:156 are for 1901-2015
 	cdo seltimestep,42/156 ISAM_S2_nbp.nc ISAM_S2_nbp_SUB.nc
 	cdo seltimestep,42/156 ISAM_S2_gpp.nc ISAM_S2_gpp_SUB.nc
 
@@ -145,8 +206,8 @@ cdo fldsum tmp4.nc tmp5.nc
 cdo mulc,1e-15 tmp5.nc ISAM_S2_gpp_GLOB.nc
 
 ## detrend
-cdo detrend -selname,nbp ISAM_S2_nbp_GLOB.nc ISAM_S2_nbp_DETR.nc
-cdo detrend -selname,gpp ISAM_S2_gpp_GLOB.nc ISAM_S2_gpp_DETR.nc
+cdo detrend -seltimestep,82/111 -selname,nbp ISAM_S2_nbp_GLOB.nc ISAM_S2_nbp_DETR.nc
+cdo detrend -seltimestep,82/111 -selname,gpp ISAM_S2_gpp_GLOB.nc ISAM_S2_gpp_DETR.nc
 
 ## variance
 cdo timvar ISAM_S2_nbp_DETR.nc ISAM_S2_nbp_VAR.nc
@@ -161,7 +222,7 @@ cd ../..
 ##----------------------------------------------------
 cd JSBACH/S2
 
-if [ -e JSBACH_S2_gpp_ANN.nc ]
+if [ ! -e JSBACH_S2_nbp_ANN.nc ] || [ ! -e JSBACH_S2_gpp_ANN.nc ]
 then
 
 	## select years
@@ -199,8 +260,8 @@ cdo fldsum tmp4.nc tmp5.nc
 cdo mulc,1e-15 tmp5.nc JSBACH_S2_gpp_GLOB.nc
 
 ## detrend
-cdo detrend -selname,nbp JSBACH_S2_nbp_GLOB.nc JSBACH_S2_nbp_DETR.nc
-cdo detrend -selname,gpp JSBACH_S2_gpp_GLOB.nc JSBACH_S2_gpp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,nbp JSBACH_S2_nbp_GLOB.nc JSBACH_S2_nbp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,gpp JSBACH_S2_gpp_GLOB.nc JSBACH_S2_gpp_DETR.nc
 
 ## variance
 cdo timvar JSBACH_S2_nbp_DETR.nc JSBACH_S2_nbp_VAR.nc
@@ -216,7 +277,7 @@ cd ../..
 ##----------------------------------------------------
 cd LPJ-GUESS/S2
 
-if [ -e LPJ-GUESS_S2_gpp_ANN.nc ]
+if [ ! -e LPJ-GUESS_S2_nbp_ANN.nc  || [ ! -e LPJ-GUESS_S2_gpp_ANN.nc ]]
 then
 
 	## select years
@@ -251,8 +312,8 @@ cdo fldsum tmp4.nc tmp5.nc
 cdo mulc,1e-15 tmp5.nc LPJ-GUESS_S2_gpp_GLOB.nc
 
 ## detrend
-cdo detrend -selname,nbp LPJ-GUESS_S2_nbp_GLOB.nc LPJ-GUESS_S2_nbp_DETR.nc
-cdo detrend -selname,gpp LPJ-GUESS_S2_gpp_GLOB.nc LPJ-GUESS_S2_gpp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,nbp LPJ-GUESS_S2_nbp_GLOB.nc LPJ-GUESS_S2_nbp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,gpp LPJ-GUESS_S2_gpp_GLOB.nc LPJ-GUESS_S2_gpp_DETR.nc
 
 ## variance
 cdo timvar LPJ-GUESS_S2_nbp_DETR.nc LPJ-GUESS_S2_nbp_VAR.nc
@@ -268,7 +329,7 @@ cd ../..
 ##----------------------------------------------------
 cd LPX-Bern/S2
 
-if [ -e LPX_S2_gpp_ANN.nc ]
+if [ ! -e LPX_S2_nbp_ANN.nc ] || [ ! -e LPX_S2_gpp_ANN.nc ]
 then
 
 	# Pre-process data
@@ -309,8 +370,8 @@ cdo fldsum tmp4.nc tmp5.nc
 cdo mulc,1e-15 tmp5.nc LPX_S2_gpp_GLOB.nc
 
 ## detrend
-cdo detrend -selname,nbp LPX_S2_nbp_GLOB.nc LPX_S2_nbp_DETR.nc
-cdo detrend -selname,gpp LPX_S2_gpp_GLOB.nc LPX_S2_gpp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,nbp LPX_S2_nbp_GLOB.nc LPX_S2_nbp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,gpp LPX_S2_gpp_GLOB.nc LPX_S2_gpp_DETR.nc
 
 ## variance
 cdo timvar LPX_S2_nbp_DETR.nc LPX_S2_nbp_VAR.nc
@@ -326,7 +387,7 @@ cd ../..
 ##----------------------------------------------------
 cd ORCHIDEE/S2
 
-if [ -e orchidee_S2_gpp_ANN.nc ]
+if [ ! -e orchidee_S2_nbp_ANN.nc ] || [ ! -e orchidee_S2_gpp_ANN.nc ]
 then
 
 	## correcting messed up time axis and selecting years 1901-2015
@@ -363,8 +424,8 @@ cdo fldsum tmp4.nc tmp5.nc
 cdo mulc,1e-15 tmp5.nc orchidee_S2_gpp_GLOB.nc
 
 ## detrend
-cdo detrend -selname,nbp orchidee_S2_nbp_GLOB.nc orchidee_S2_nbp_DETR.nc
-cdo detrend -selname,gpp orchidee_S2_gpp_GLOB.nc orchidee_S2_gpp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,nbp orchidee_S2_nbp_GLOB.nc orchidee_S2_nbp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,gpp orchidee_S2_gpp_GLOB.nc orchidee_S2_gpp_DETR.nc
 
 ## variance
 cdo timvar orchidee_S2_nbp_DETR.nc orchidee_S2_nbp_VAR.nc
@@ -380,7 +441,7 @@ cd ../..
 ##----------------------------------------------------
 cd SDGVM/S2
 
-if [ -e SDGVM_S2_gpp_ANN.nc ]
+if [ ! -e SDGVM_S2_nbp_ANN.nc ] || [ ! -e SDGVM_S2_gpp_ANN.nc ]
 then
 
 	## select years (original from Jan 1860 - Oct 2013, total 1872 time steps = 156 years. Therefore should be to Dec 2015. Correct the damn file.)
@@ -421,8 +482,8 @@ cdo fldsum tmp4.nc tmp5.nc
 cdo mulc,1e-15 tmp5.nc SDGVM_S2_gpp_GLOB.nc
 
 ## detrend
-cdo detrend -selname,nbp SDGVM_S2_nbp_GLOB.nc SDGVM_S2_nbp_DETR.nc
-cdo detrend -selname,gpp SDGVM_S2_gpp_GLOB.nc SDGVM_S2_gpp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,nbp SDGVM_S2_nbp_GLOB.nc SDGVM_S2_nbp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,gpp SDGVM_S2_gpp_GLOB.nc SDGVM_S2_gpp_DETR.nc
 
 ## variance
 cdo timvar SDGVM_S2_nbp_DETR.nc SDGVM_S2_nbp_VAR.nc
@@ -438,7 +499,7 @@ cd ../..
 ##----------------------------------------------------
 cd VEGAS/S2
 
-if [ -e VEGAS_S2_gpp_ANN.nc ]
+if [ ! -e VEGAS_S2_nbp_ANN.nc ] || [ ! -e VEGAS_S2_gpp_ANN.nc ]
 then
 
 	## subset years
@@ -476,8 +537,8 @@ cdo fldsum tmp4.nc tmp5.nc
 cdo mulc,1e-15 tmp5.nc VEGAS_S2_gpp_GLOB.nc
 
 ## detrend
-cdo detrend -selname,nbp VEGAS_S2_nbp_GLOB.nc VEGAS_S2_nbp_DETR.nc
-cdo detrend -selname,gpp VEGAS_S2_gpp_GLOB.nc VEGAS_S2_gpp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,nbp VEGAS_S2_nbp_GLOB.nc VEGAS_S2_nbp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,gpp VEGAS_S2_gpp_GLOB.nc VEGAS_S2_gpp_DETR.nc
 
 ## variance
 cdo timvar VEGAS_S2_nbp_DETR.nc VEGAS_S2_nbp_VAR.nc
@@ -493,7 +554,7 @@ cd ../..
 ##----------------------------------------------------
 cd VISIT/S2
 
-if [ -e VISIT_S2_gpp_ANN.nc ]
+if [ ! -e VISIT_S2_nbp_ANN.nc ] || [ ! -e VISIT_S2_gpp_ANN.nc ]
 then
 
 	## subset years
@@ -531,8 +592,8 @@ cdo fldsum tmp4.nc tmp5.nc
 cdo mulc,1e-15 tmp5.nc VISIT_S2_gpp_GLOB.nc
 
 ## detrend
-cdo detrend -selyear,1982/2015 -selname,nbp VISIT_S2_nbp_GLOB.nc VISIT_S2_nbp_DETR.nc
-cdo detrend -selyear,1982/2015 -selname,gpp VISIT_S2_gpp_GLOB.nc VISIT_S2_gpp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,nbp VISIT_S2_nbp_GLOB.nc VISIT_S2_nbp_DETR.nc
+cdo detrend -selyear,1982/2011 -selname,gpp VISIT_S2_gpp_GLOB.nc VISIT_S2_gpp_DETR.nc
 
 ## variance
 cdo timvar VISIT_S2_nbp_DETR.nc VISIT_S2_nbp_VAR.nc
