@@ -4,3 +4,5 @@ gpp_mte,gpp_mte,MTE,1982,2011
 gpp_modis,gpp_modis,MODIS,2000,2015
 gpp_vpm,gpp_vpm,VPM,2000,2016
 gpp_bess,gpp_bess,BESS,2001,2015
+pmodel_fortran_output,gpp_pmodel_s0,Pmodel_S0,1982,2011
+pmodel_fortran_output,gpp_pmodel_s1,Pmodel_S1,1982,2011

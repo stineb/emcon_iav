@@ -2,7 +2,7 @@
 
 here=`pwd`
 
-myhome=/alphadata01/bstocker/
+myhome=~
 
 # ##----------------------------------------------------
 # ## P-model S0
@@ -84,97 +84,97 @@ myhome=/alphadata01/bstocker/
 # cd $here
 
 
-##----------------------------------------------------
-## MTE
-##----------------------------------------------------
-cd $myhome/data/gpp_mte/
+# ##----------------------------------------------------
+# ## MTE
+# ##----------------------------------------------------
+# cd $myhome/data/gpp_mte/
 
-## get a new time axis (file starts in december 1981 when it should be jan 1982)
-Rscript preproc_mte.R
+# ## get a new time axis (file starts in december 1981 when it should be jan 1982)
+# Rscript preproc_mte.R
 
-## select years
-cdo selyear,1982/2011 gpp_mte_NICE.nc gpp_mte_SUB.nc
+# ## select years
+# cdo selyear,1982/2011 gpp_mte_NICE.nc gpp_mte_SUB.nc
 
-## multiply with days per month
-cdo muldpm gpp_mte_SUB.nc gpp_mte_DPM.nc
+# ## multiply with days per month
+# cdo muldpm gpp_mte_SUB.nc gpp_mte_DPM.nc
 
-## multiply with seconds per day and convert from kg C to g C
-cdo mulc,86400000 gpp_mte_DPM.nc gpp_mte_SPM.nc
+# ## multiply with seconds per day and convert from kg C to g C
+# cdo mulc,86400000 gpp_mte_DPM.nc gpp_mte_SPM.nc
 
-## get annual sums
-cdo yearsum gpp_mte_SPM.nc gpp_mte_ANN.nc
+# ## get annual sums
+# cdo yearsum gpp_mte_SPM.nc gpp_mte_ANN.nc
 
-## detrend at each gridcell
-cdo detrend -selyear,1982/2011 -selname,gpp gpp_mte_ANN.nc gpp_mte_DETR.nc
-cdo detrend -selyear,2001/2011 -selname,gpp gpp_mte_ANN.nc gpp_mte_DETR20XX.nc
+# ## detrend at each gridcell
+# cdo detrend -selyear,1982/2011 -selname,gpp gpp_mte_ANN.nc gpp_mte_DETR.nc
+# cdo detrend -selyear,2001/2011 -selname,gpp gpp_mte_ANN.nc gpp_mte_DETR20XX.nc
 
-## get variance of annual GPP at each pixel
-cdo timvar gpp_mte_DETR.nc gpp_mte_VAR.nc
-cdo timvar gpp_mte_DETR20XX.nc gpp_mte_VAR20XX.nc
+# ## get variance of annual GPP at each pixel
+# cdo timvar gpp_mte_DETR.nc gpp_mte_VAR.nc
+# cdo timvar gpp_mte_DETR20XX.nc gpp_mte_VAR20XX.nc
 
-## get global totals
-## GPP
-cdo gridarea gpp_mte_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 gpp_mte_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,gpp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc gpp_mte_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc gpp_mte_GLOB.nc
+# ## get global totals
+# ## GPP
+# cdo gridarea gpp_mte_ANN.nc gridarea.nc
+# cdo mulc,1 -seltimestep,1 gpp_mte_ANN.nc tmp.nc
+# cdo div tmp.nc tmp.nc ones.nc
+# cdo selname,gpp ones.nc mask.nc
+# cdo mul mask.nc gridarea.nc gridarea_masked.nc
+# cdo mul gridarea_masked.nc gpp_mte_ANN.nc tmp2.nc
+# cdo fldsum tmp2.nc tmp3.nc
+# cdo mulc,1e-15 tmp3.nc gpp_mte_GLOB.nc
 
-## detrend
-cdo detrend -selyear,1982/2011 -selname,gpp gpp_mte_GLOB.nc gpp_mte_DETR_GLOB.nc
-cdo detrend -selyear,2001/2011 -selname,gpp gpp_mte_GLOB.nc gpp_mte_DETR_GLOB20XX.nc
+# ## detrend
+# cdo detrend -selyear,1982/2011 -selname,gpp gpp_mte_GLOB.nc gpp_mte_DETR_GLOB.nc
+# cdo detrend -selyear,2001/2011 -selname,gpp gpp_mte_GLOB.nc gpp_mte_DETR_GLOB20XX.nc
 
-## variance
-cdo timvar gpp_mte_DETR_GLOB.nc gpp_mte_VAR_GLOB.nc
-cdo timvar gpp_mte_DETR_GLOB20XX.nc gpp_mte_VAR_GLOB20XX.nc
+# ## variance
+# cdo timvar gpp_mte_DETR_GLOB.nc gpp_mte_VAR_GLOB.nc
+# cdo timvar gpp_mte_DETR_GLOB20XX.nc gpp_mte_VAR_GLOB20XX.nc
 
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
+# ## remove temporary files
+# rm tmp.nc tmp2.nc tmp3.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
 
-cd $here
+# cd $here
 
 
-##----------------------------------------------------
-## MTE-FLUXCOM
-##----------------------------------------------------
-cd $myhome/data/gpp_mte/
+# ##----------------------------------------------------
+# ## MTE-FLUXCOM
+# ##----------------------------------------------------
+# cd $myhome/data/gpp_mte/
 
-# ## concatenae annual files (cdo mergetime doesn't work)
-# Rscript preprocess_gpp_mte_fluxcom.R
+# # ## concatenae annual files (cdo mergetime doesn't work)
+# # Rscript preprocess_gpp_mte_fluxcom.R
 
-## detrend at each gridcell
-cdo detrend -selyear,1982/2011 -selname,gpp gpp_mte_fluxcom_ANN.nc gpp_mte_fluxcom_DETR.nc
-cdo detrend -selyear,2001/2011 -selname,gpp gpp_mte_fluxcom_ANN.nc gpp_mte_fluxcom_DETR20XX.nc
+# ## detrend at each gridcell
+# cdo detrend -selyear,1982/2011 -selname,gpp gpp_mte_fluxcom_ANN.nc gpp_mte_fluxcom_DETR.nc
+# cdo detrend -selyear,2001/2011 -selname,gpp gpp_mte_fluxcom_ANN.nc gpp_mte_fluxcom_DETR20XX.nc
 
-## get variance of annual GPP at each pixel
-cdo timvar gpp_mte_fluxcom_DETR.nc gpp_mte_fluxcom_VAR.nc
+# ## get variance of annual GPP at each pixel
+# cdo timvar gpp_mte_fluxcom_DETR.nc gpp_mte_fluxcom_VAR.nc
 
-## get global totals
-## GPP
-cdo gridarea gpp_mte_fluxcom_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 gpp_mte_fluxcom_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,gpp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc gpp_mte_fluxcom_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc gpp_mte_fluxcom_GLOB.nc
+# ## get global totals
+# ## GPP
+# cdo gridarea gpp_mte_fluxcom_ANN.nc gridarea.nc
+# cdo mulc,1 -seltimestep,1 gpp_mte_fluxcom_ANN.nc tmp.nc
+# cdo div tmp.nc tmp.nc ones.nc
+# cdo selname,gpp ones.nc mask.nc
+# cdo mul mask.nc gridarea.nc gridarea_masked.nc
+# cdo mul gridarea_masked.nc gpp_mte_fluxcom_ANN.nc tmp2.nc
+# cdo fldsum tmp2.nc tmp3.nc
+# cdo mulc,1e-15 tmp3.nc gpp_mte_fluxcom_GLOB.nc
 
-## detrend
-cdo detrend -selyear,1982/2011 -selname,gpp gpp_mte_fluxcom_GLOB.nc gpp_mte_fluxcom_DETR_GLOB.nc
-cdo detrend -selyear,2001/2011 -selname,gpp gpp_mte_fluxcom_GLOB.nc gpp_mte_fluxcom_DETR_GLOB20XX.nc
+# ## detrend
+# cdo detrend -selyear,1982/2011 -selname,gpp gpp_mte_fluxcom_GLOB.nc gpp_mte_fluxcom_DETR_GLOB.nc
+# cdo detrend -selyear,2001/2011 -selname,gpp gpp_mte_fluxcom_GLOB.nc gpp_mte_fluxcom_DETR_GLOB20XX.nc
 
-## variance
-cdo timvar gpp_mte_fluxcom_DETR_GLOB.nc gpp_mte_fluxcom_VAR_GLOB.nc
-cdo timvar gpp_mte_fluxcom_DETR_GLOB20XX.nc gpp_mte_fluxcom_VAR_GLOB20XX.nc
+# ## variance
+# cdo timvar gpp_mte_fluxcom_DETR_GLOB.nc gpp_mte_fluxcom_VAR_GLOB.nc
+# cdo timvar gpp_mte_fluxcom_DETR_GLOB20XX.nc gpp_mte_fluxcom_VAR_GLOB20XX.nc
 
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
+# ## remove temporary files
+# rm tmp.nc tmp2.nc tmp3.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
 
-cd $here
+# cd $here
 
 ##----------------------------------------------------
 ## VPM
@@ -253,38 +253,38 @@ rm tmp.nc tmp2.nc tmp3.nc gridarea.nc gridarea_masked.nc mask.nc ones.nc
 cd $here
 
 
-##----------------------------------------------------
-## MODIS
-##----------------------------------------------------
-cd $myhome/data/gpp_modis/
+# ##----------------------------------------------------
+# ## MODIS
+# ##----------------------------------------------------
+# cd $myhome/data/gpp_modis/
 
-## detrend at each gridcell
-cdo detrend -selyear,2001/2011 -selname,gpp gpp_modis_ANN.nc gpp_modis_DETR_20XX.nc
+# ## detrend at each gridcell
+# cdo detrend -selyear,2001/2011 -selname,gpp gpp_modis_ANN.nc gpp_modis_DETR_20XX.nc
 
-## get variance of annual GPP at each pixel
-cdo timvar gpp_modis_DETR_20XX.nc gpp_modis_VAR_20XX.nc
+# ## get variance of annual GPP at each pixel
+# cdo timvar gpp_modis_DETR_20XX.nc gpp_modis_VAR_20XX.nc
 
-## get global totals
-## GPP
-cdo gridarea gpp_modis_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 gpp_modis_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,gpp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc gpp_modis_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc gpp_modis_GLOB.nc
+# ## get global totals
+# ## GPP
+# cdo gridarea gpp_modis_ANN.nc gridarea.nc
+# cdo mulc,1 -seltimestep,1 gpp_modis_ANN.nc tmp.nc
+# cdo div tmp.nc tmp.nc ones.nc
+# cdo selname,gpp ones.nc mask.nc
+# cdo mul mask.nc gridarea.nc gridarea_masked.nc
+# cdo mul gridarea_masked.nc gpp_modis_ANN.nc tmp2.nc
+# cdo fldsum tmp2.nc tmp3.nc
+# cdo mulc,1e-15 tmp3.nc gpp_modis_GLOB.nc
 
-## detrend (original 2000-2015)
-cdo detrend -selyear,2001/2011 -selname,gpp gpp_modis_GLOB.nc gpp_modis_DETR_GLOB20XX.nc
+# ## detrend (original 2000-2015)
+# cdo detrend -selyear,2001/2011 -selname,gpp gpp_modis_GLOB.nc gpp_modis_DETR_GLOB20XX.nc
 
-## variance
-cdo timvar gpp_modis_DETR_GLOB20XX.nc gpp_modis_VAR_GLOB20XX.nc
+# ## variance
+# cdo timvar gpp_modis_DETR_GLOB20XX.nc gpp_modis_VAR_GLOB20XX.nc
 
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc gridarea.nc gridarea_masked.nc mask.nc ones.nc
+# ## remove temporary files
+# rm tmp.nc tmp2.nc tmp3.nc gridarea.nc gridarea_masked.nc mask.nc ones.nc
 
-cd $here
+# cd $here
 
 
 
