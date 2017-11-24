@@ -1,11 +1,92 @@
 #!/bin/bash
 
+proc_trendy_single (){
+	##-----------------------------
+	## argument 1: base file name
+	##-----------------------------
+	## detrend at each gridcell
+    if [ $2 = "timestep" ]
+    then
+		cdo detrend -seltimestep,82/111 -selname,gpp $1_gpp_ANN.nc $1_gpp_DETR.nc
+		# cdo detrend -seltimestep,101/111 -selname,gpp $1_gpp_ANN.nc $1_gpp_DETR20XX.nc
+	else
+		cdo detrend -selyear,1982/2011 -selname,gpp $1_gpp_ANN.nc $1_gpp_DETR.nc
+		# cdo detrend -selyear,2001/2011 -selname,gpp $1_gpp_ANN.nc $1_gpp_DETR20XX.nc
+	fi
+
+	## get variance of annual GPP at each pixel
+	cdo timvar $1_gpp_DETR.nc $1_gpp_VAR.nc
+	# cdo timvar $1_gpp_DETR20XX.nc $1_gpp_VAR20XX.nc
+
+	## get mean field
+    if [ $2 = "timestep" ]
+    then
+		cdo timmean -seltimestep,82/111 -selname,gpp $1_gpp_ANN.nc $1_gpp_MEAN.nc
+		# cdo timmean -seltimestep,82/111 -selname,gpp $1_gpp_ANN.nc $1_gpp_MEAN20XX.nc  		
+ 	else
+		cdo timmean -selyear,1982/2011 -selname,gpp $1_gpp_ANN.nc $1_gpp_MEAN.nc
+		# cdo timmean -selyear,2001/2011 -selname,gpp $1_gpp_ANN.nc $1_gpp_MEAN20XX.nc  		
+  	fi
+
+	## get relative variance field
+	cdo div $1_gpp_VAR.nc $1_gpp_MEAN.nc $1_gpp_RELVAR.nc
+	# cdo div $1_gpp_VAR20XX.nc $1_gpp_MEAN20XX.nc $1_gpp_RELVAR20XX.nc
+
+	## get global totals
+	## NBP
+	cdo gridarea $1_nbp_ANN.nc gridarea.nc
+	cdo mulc,1 -seltimestep,1 $1_nbp_ANN.nc tmp.nc
+	cdo div tmp.nc tmp.nc ones.nc
+	cdo selname,nbp ones.nc mask.nc
+	cdo mul mask.nc gridarea.nc gridarea_masked.nc
+	cdo mul gridarea_masked.nc $1_nbp_ANN.nc tmp2.nc
+	cdo fldsum tmp2.nc tmp3.nc
+	cdo mulc,1e-15 tmp3.nc $1_nbp_GLOB.nc
+
+	## GPP
+	cdo mul gridarea_masked.nc $1_gpp_ANN.nc tmp4.nc
+	cdo fldsum tmp4.nc tmp5.nc
+	cdo mulc,1e-15 tmp5.nc $1_gpp_GLOB.nc
+
+	## detrend
+    if [ $2 = "timestep" ]
+    then
+		cdo detrend -seltimestep,82/111 -selname,nbp $1_nbp_GLOB.nc $1_nbp_DETR_GLOB.nc
+		cdo detrend -seltimestep,82/111 -selname,gpp $1_gpp_GLOB.nc $1_gpp_DETR_GLOB.nc
+
+		# cdo detrend -seltimestep,101/111 -selname,nbp $1_nbp_GLOB.nc $1_nbp_DETR_GLOB20XX.nc
+		# cdo detrend -seltimestep,101/111 -selname,gpp $1_gpp_GLOB.nc $1_gpp_DETR_GLOB20XX.nc
+	else 
+		cdo detrend -selyear,1982/2011 -selname,nbp $1_nbp_GLOB.nc $1_nbp_DETR_GLOB.nc
+		cdo detrend -selyear,1982/2011 -selname,gpp $1_gpp_GLOB.nc $1_gpp_DETR_GLOB.nc
+
+		# cdo detrend -selyear,2001/2011 -selname,nbp $1_nbp_GLOB.nc $1_nbp_DETR_GLOB20XX.nc
+		# cdo detrend -selyear,2001/2011 -selname,gpp $1_gpp_GLOB.nc $1_gpp_DETR_GLOB20XX.nc
+	fi
+
+
+	## variance
+	cdo timvar $1_nbp_DETR_GLOB.nc $1_nbp_VAR_GLOB.nc
+	cdo timvar $1_gpp_DETR_GLOB.nc $1_gpp_VAR_GLOB.nc
+
+	# cdo timvar $1_nbp_DETR_GLOB20XX.nc $1_nbp_VAR_GLOB20XX.nc
+	# cdo timvar $1_gpp_DETR_GLOB20XX.nc $1_gpp_VAR_GLOB20XX.nc
+
+	## remove temporary files
+	rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
+
+	return 0
+}
+
+here=`pwd`
+myhome=~
+
 ##----------------------------------------------------
 ## CABLE
 ##----------------------------------------------------
-cd CABLE/S2
+cd $myhome/data/trendy/v5/CABLE/S2
 
-if [ ! -e CABLE-POP_S2_nbp_ANN.nc  || [ ! -e CABLE-POP_S2_gpp_ANN.nc ]]
+if [[ ! -e CABLE-POP_S2_nbp_ANN.nc || ! -e CABLE-POP_S2_gpp_ANN.nc ]]
 then
 
 	## select years
@@ -26,34 +107,9 @@ then
 
 fi
 
-## get global totals
-## NBP
-cdo gridarea CABLE-POP_S2_nbp_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 CABLE-POP_S2_nbp_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,nbp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc CABLE-POP_S2_nbp_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc CABLE-POP_S2_nbp_GLOB.nc
+proc_trendy_single CABLE-POP_S2
 
-## GPP
-cdo mul gridarea_masked.nc CABLE-POP_S2_gpp_ANN.nc tmp4.nc
-cdo fldsum tmp4.nc tmp5.nc
-cdo mulc,1e-15 tmp5.nc CABLE-POP_S2_gpp_GLOB.nc
-
-## detrend
-cdo detrend -selyear,1982/2011 -selname,nbp CABLE-POP_S2_nbp_GLOB.nc CABLE-POP_S2_nbp_DETR.nc
-cdo detrend -selyear,1982/2011 -selname,gpp CABLE-POP_S2_gpp_GLOB.nc CABLE-POP_S2_gpp_DETR.nc
-
-## variance
-cdo timvar CABLE-POP_S2_nbp_DETR.nc CABLE-POP_S2_nbp_VAR.nc
-cdo timvar CABLE-POP_S2_gpp_DETR.nc CABLE-POP_S2_gpp_VAR.nc
-
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
-
-cd ../..
+cd $here
 
 #----------------------------------------------------
 # CLASS-CTEM: messed up dimensions - therefore not used
@@ -62,9 +118,9 @@ cd ../..
 ##----------------------------------------------------
 ## CLM
 ##----------------------------------------------------
-cd CLM/S2
+cd $myhome/data/trendy/v5/CLM/S2
 
-if [ ! -e CLM4.5_S2_nbp_ANN.nc  || [ ! -e CLM4.5_S2_gpp_ANN.nc ]]
+if [[ ! -e CLM4.5_S2_nbp_ANN.nc  || ! -e CLM4.5_S2_gpp_ANN.nc ]]
 then
 
 	## select years
@@ -85,98 +141,22 @@ then
 
 fi
 
-## get global totals
-## NBP
-cdo gridarea CLM4.5_S2_nbp_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 CLM4.5_S2_nbp_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,nbp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc CLM4.5_S2_nbp_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc CLM4.5_S2_nbp_GLOB.nc
+proc_trendy_single CLM4.5_S2
 
-## GPP
-cdo mul gridarea_masked.nc CLM4.5_S2_gpp_ANN.nc tmp4.nc
-cdo fldsum tmp4.nc tmp5.nc
-cdo mulc,1e-15 tmp5.nc CLM4.5_S2_gpp_GLOB.nc
-
-## detrend
-cdo detrend -selyear,1982/2011 -selname,nbp CLM4.5_S2_nbp_GLOB.nc CLM4.5_S2_nbp_DETR.nc
-cdo detrend -selyear,1982/2011 -selname,gpp CLM4.5_S2_gpp_GLOB.nc CLM4.5_S2_gpp_DETR.nc
-
-## variance
-cdo timvar CLM4.5_S2_nbp_DETR.nc CLM4.5_S2_nbp_VAR.nc
-cdo timvar CLM4.5_S2_gpp_DETR.nc CLM4.5_S2_gpp_VAR.nc
-
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
-cd ../..
+cd $here
 
 
 ##----------------------------------------------------
 ## DLEM - can't convert to normal NetCDF
 ##----------------------------------------------------
-cd DLEM/S2
 
-if [ ! -e CLM4.5_S2_nbp_ANN.nc  || [ ! -e CLM4.5_S2_gpp_ANN.nc ]]
-then
-
-	## select years
-	cdo -f nc2 copy DLEM_S2_nbp.nc4 DLEM_S2_nbp.nc
-	cdo -f nc2 copy DLEM_S2_gpp.nc4 DLEM_S2_gpp.nc
-
-	cdo -f nc2 selyear,1901/2015 DLEM_S2_nbp.nc DLEM_S2_nbp_SUB.nc
-	cdo -f nc2 selyear,1901/2015 DLEM_S2_gpp.nc DLEM_S2_gpp_SUB.nc
-
-	## multiply with days per month
-	cdo muldpm DLEM_S2_nbp_SUB.nc DLEM_S2_nbp_DPM.nc
-	cdo muldpm DLEM_S2_gpp_SUB.nc DLEM_S2_gpp_DPM.nc
-
-	## multiply with seconds per day and convert from kg C to g C
-	cdo mulc,86400000 DLEM_S2_nbp_DPM.nc DLEM_S2_nbp_SPM.nc
-	cdo mulc,86400000 DLEM_S2_gpp_DPM.nc DLEM_S2_gpp_SPM.nc
-
-	## get annual sums
-	cdo yearsum DLEM_S2_nbp_SPM.nc DLEM_S2_nbp_ANN.nc
-	cdo yearsum DLEM_S2_gpp_SPM.nc DLEM_S2_gpp_ANN.nc
-
-fi
-
-## get global totals
-## NBP
-cdo gridarea DLEM_S2_nbp_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 DLEM_S2_nbp_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,nbp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc DLEM_S2_nbp_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc DLEM_S2_nbp_GLOB.nc
-
-## GPP
-cdo mul gridarea_masked.nc DLEM_S2_gpp_ANN.nc tmp4.nc
-cdo fldsum tmp4.nc tmp5.nc
-cdo mulc,1e-15 tmp5.nc DLEM_S2_gpp_GLOB.nc
-
-## detrend
-cdo detrend -selyear,1982/2011 -selname,nbp DLEM_S2_nbp_GLOB.nc DLEM_S2_nbp_DETR.nc
-cdo detrend -selyear,1982/2011 -selname,gpp DLEM_S2_gpp_GLOB.nc DLEM_S2_gpp_DETR.nc
-
-## variance
-cdo timvar DLEM_S2_nbp_DETR.nc DLEM_S2_nbp_VAR.nc
-cdo timvar DLEM_S2_gpp_DETR.nc DLEM_S2_gpp_VAR.nc
-
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
-cd ../..
 
 ##----------------------------------------------------
 ## ISAM
 ##----------------------------------------------------
-cd ISAM/S2
+cd $myhome/data/trendy/v5/ISAM/S2
 
-if [ ! -e ISAM_S2_nbp_ANN.nc ] || [ ! -e ISAM_S2_gpp_ANN.nc ]
+if [[ ! -e ISAM_S2_nbp_ANN.nc || ! -e ISAM_S2_gpp_ANN.nc ]]
 then
 
 	## select years. time steps 42:156 are for 1901-2015
@@ -189,40 +169,16 @@ then
 
 fi
 
-## get global totals
-## NBP
-cdo gridarea ISAM_S2_nbp_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 ISAM_S2_nbp_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,nbp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc ISAM_S2_nbp_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc ISAM_S2_nbp_GLOB.nc
+proc_trendy_single ISAM_S2 "timestep"
 
-## GPP
-cdo mul gridarea_masked.nc ISAM_S2_gpp_ANN.nc tmp4.nc
-cdo fldsum tmp4.nc tmp5.nc
-cdo mulc,1e-15 tmp5.nc ISAM_S2_gpp_GLOB.nc
-
-## detrend
-cdo detrend -seltimestep,82/111 -selname,nbp ISAM_S2_nbp_GLOB.nc ISAM_S2_nbp_DETR.nc
-cdo detrend -seltimestep,82/111 -selname,gpp ISAM_S2_gpp_GLOB.nc ISAM_S2_gpp_DETR.nc
-
-## variance
-cdo timvar ISAM_S2_nbp_DETR.nc ISAM_S2_nbp_VAR.nc
-cdo timvar ISAM_S2_gpp_DETR.nc ISAM_S2_gpp_VAR.nc
-
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc mask.nc ones.nc
-cd ../..
+cd $here
 
 ##----------------------------------------------------
 ## JSBACH
 ##----------------------------------------------------
-cd JSBACH/S2
+cd $myhome/data/trendy/v5/JSBACH/S2
 
-if [ ! -e JSBACH_S2_nbp_ANN.nc ] || [ ! -e JSBACH_S2_gpp_ANN.nc ]
+if [[ ! -e JSBACH_S2_nbp_ANN.nc || ! -e JSBACH_S2_gpp_ANN.nc ]]
 then
 
 	## select years
@@ -243,41 +199,17 @@ then
 
 fi
 
-## get global totals
-## NBP
-cdo gridarea JSBACH_S2_nbp_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 JSBACH_S2_nbp_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,nbp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc JSBACH_S2_nbp_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc JSBACH_S2_nbp_GLOB.nc
+proc_trendy_single JSBACH_S2
 
-## GPP
-cdo mul gridarea_masked.nc JSBACH_S2_gpp_ANN.nc tmp4.nc
-cdo fldsum tmp4.nc tmp5.nc
-cdo mulc,1e-15 tmp5.nc JSBACH_S2_gpp_GLOB.nc
-
-## detrend
-cdo detrend -selyear,1982/2011 -selname,nbp JSBACH_S2_nbp_GLOB.nc JSBACH_S2_nbp_DETR.nc
-cdo detrend -selyear,1982/2011 -selname,gpp JSBACH_S2_gpp_GLOB.nc JSBACH_S2_gpp_DETR.nc
-
-## variance
-cdo timvar JSBACH_S2_nbp_DETR.nc JSBACH_S2_nbp_VAR.nc
-cdo timvar JSBACH_S2_gpp_DETR.nc JSBACH_S2_gpp_VAR.nc
-
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
-cd ../..
+cd $here
 
 
 ##----------------------------------------------------
 ## LPJ-GUESS
 ##----------------------------------------------------
-cd LPJ-GUESS/S2
+cd $myhome/data/trendy/v5/LPJ-GUESS/S2
 
-if [ ! -e LPJ-GUESS_S2_nbp_ANN.nc  || [ ! -e LPJ-GUESS_S2_gpp_ANN.nc ]]
+if [[ ! -e LPJ-GUESS_S2_nbp_ANN.nc  || ! -e LPJ-GUESS_S2_gpp_ANN.nc ]]
 then
 
 	## select years
@@ -295,41 +227,17 @@ then
 
 fi
 
-## get global totals
-## NBP
-cdo gridarea LPJ-GUESS_S2_nbp_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 LPJ-GUESS_S2_nbp_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,nbp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc LPJ-GUESS_S2_nbp_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc LPJ-GUESS_S2_nbp_GLOB.nc
+proc_trendy_single LPJ-GUESS_S2
 
-## GPP
-cdo mul gridarea_masked.nc LPJ-GUESS_S2_gpp_ANN.nc tmp4.nc
-cdo fldsum tmp4.nc tmp5.nc
-cdo mulc,1e-15 tmp5.nc LPJ-GUESS_S2_gpp_GLOB.nc
-
-## detrend
-cdo detrend -selyear,1982/2011 -selname,nbp LPJ-GUESS_S2_nbp_GLOB.nc LPJ-GUESS_S2_nbp_DETR.nc
-cdo detrend -selyear,1982/2011 -selname,gpp LPJ-GUESS_S2_gpp_GLOB.nc LPJ-GUESS_S2_gpp_DETR.nc
-
-## variance
-cdo timvar LPJ-GUESS_S2_nbp_DETR.nc LPJ-GUESS_S2_nbp_VAR.nc
-cdo timvar LPJ-GUESS_S2_gpp_DETR.nc LPJ-GUESS_S2_gpp_VAR.nc
-
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
-cd ../..
+cd $here
 
 
 ##----------------------------------------------------
 ## LPX-Bern
 ##----------------------------------------------------
-cd LPX-Bern/S2
+cd $myhome/data/trendy/v5/LPX-Bern/S2
 
-if [ ! -e LPX_S2_nbp_ANN.nc ] || [ ! -e LPX_S2_gpp_ANN.nc ]
+if [[ ! -e LPX_S2_nbp_ANN.nc || ! -e LPX_S2_gpp_ANN.nc ]]
 then
 
 	# Pre-process data
@@ -353,41 +261,17 @@ then
 
 fi
 
-## get global totals
-## NBP
-cdo gridarea LPX_S2_nbp_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 LPX_S2_nbp_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,nbp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc LPX_S2_nbp_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc LPX_S2_nbp_GLOB.nc
+proc_trendy_single LPX_S2
 
-## GPP
-cdo mul gridarea_masked.nc LPX_S2_gpp_ANN.nc tmp4.nc
-cdo fldsum tmp4.nc tmp5.nc
-cdo mulc,1e-15 tmp5.nc LPX_S2_gpp_GLOB.nc
-
-## detrend
-cdo detrend -selyear,1982/2011 -selname,nbp LPX_S2_nbp_GLOB.nc LPX_S2_nbp_DETR.nc
-cdo detrend -selyear,1982/2011 -selname,gpp LPX_S2_gpp_GLOB.nc LPX_S2_gpp_DETR.nc
-
-## variance
-cdo timvar LPX_S2_nbp_DETR.nc LPX_S2_nbp_VAR.nc
-cdo timvar LPX_S2_gpp_DETR.nc LPX_S2_gpp_VAR.nc
-
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
-cd ../..
+cd $here
 
 
 ##----------------------------------------------------
 ## ORCHIDEE
 ##----------------------------------------------------
-cd ORCHIDEE/S2
+cd $myhome/data/trendy/v5/ORCHIDEE/S2
 
-if [ ! -e orchidee_S2_nbp_ANN.nc ] || [ ! -e orchidee_S2_gpp_ANN.nc ]
+if [[ ! -e orchidee_S2_nbp_ANN.nc || ! -e orchidee_S2_gpp_ANN.nc ]]
 then
 
 	## correcting messed up time axis and selecting years 1901-2015
@@ -407,41 +291,17 @@ then
 
 fi
 
-## get global totals
-## NBP
-cdo gridarea orchidee_S2_nbp_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 orchidee_S2_nbp_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,nbp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc orchidee_S2_nbp_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc orchidee_S2_nbp_GLOB.nc
+proc_trendy_single orchidee_S2
 
-## GPP
-cdo mul gridarea_masked.nc orchidee_S2_gpp_ANN.nc tmp4.nc
-cdo fldsum tmp4.nc tmp5.nc
-cdo mulc,1e-15 tmp5.nc orchidee_S2_gpp_GLOB.nc
-
-## detrend
-cdo detrend -selyear,1982/2011 -selname,nbp orchidee_S2_nbp_GLOB.nc orchidee_S2_nbp_DETR.nc
-cdo detrend -selyear,1982/2011 -selname,gpp orchidee_S2_gpp_GLOB.nc orchidee_S2_gpp_DETR.nc
-
-## variance
-cdo timvar orchidee_S2_nbp_DETR.nc orchidee_S2_nbp_VAR.nc
-cdo timvar orchidee_S2_gpp_DETR.nc orchidee_S2_gpp_VAR.nc
-
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
-cd ../..
+cd $here
 
 
 ##----------------------------------------------------
 ## SDGVM
 ##----------------------------------------------------
-cd SDGVM/S2
+cd $myhome/data/trendy/v5/SDGVM/S2
 
-if [ ! -e SDGVM_S2_nbp_ANN.nc ] || [ ! -e SDGVM_S2_gpp_ANN.nc ]
+if [[ ! -e SDGVM_S2_nbp_ANN.nc || ! -e SDGVM_S2_gpp_ANN.nc ]]
 then
 
 	## select years (original from Jan 1860 - Oct 2013, total 1872 time steps = 156 years. Therefore should be to Dec 2015. Correct the damn file.)
@@ -465,41 +325,17 @@ then
 
 fi
 
-## get global totals
-## NBP
-cdo gridarea SDGVM_S2_nbp_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 SDGVM_S2_nbp_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,nbp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc SDGVM_S2_nbp_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc SDGVM_S2_nbp_GLOB.nc
+proc_trendy_single SDGVM_S2
 
-## GPP
-cdo mul gridarea_masked.nc SDGVM_S2_gpp_ANN.nc tmp4.nc
-cdo fldsum tmp4.nc tmp5.nc
-cdo mulc,1e-15 tmp5.nc SDGVM_S2_gpp_GLOB.nc
-
-## detrend
-cdo detrend -selyear,1982/2011 -selname,nbp SDGVM_S2_nbp_GLOB.nc SDGVM_S2_nbp_DETR.nc
-cdo detrend -selyear,1982/2011 -selname,gpp SDGVM_S2_gpp_GLOB.nc SDGVM_S2_gpp_DETR.nc
-
-## variance
-cdo timvar SDGVM_S2_nbp_DETR.nc SDGVM_S2_nbp_VAR.nc
-cdo timvar SDGVM_S2_gpp_DETR.nc SDGVM_S2_gpp_VAR.nc
-
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
-cd ../..
+cd $here
 
 
 ##----------------------------------------------------
 ## VEGAS
 ##----------------------------------------------------
-cd VEGAS/S2
+cd $myhome/data/trendy/v5/VEGAS/S2
 
-if [ ! -e VEGAS_S2_nbp_ANN.nc ] || [ ! -e VEGAS_S2_gpp_ANN.nc ]
+if [[ ! -e VEGAS_S2_nbp_ANN.nc || ! -e VEGAS_S2_gpp_ANN.nc ]]
 then
 
 	## subset years
@@ -520,41 +356,17 @@ then
 
 fi
 
-## get global totals
-## NBP
-cdo gridarea VEGAS_S2_nbp_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 VEGAS_S2_nbp_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,nbp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc VEGAS_S2_nbp_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc VEGAS_S2_nbp_GLOB.nc
+proc_trendy_single VEGAS_S2
 
-## GPP
-cdo mul gridarea_masked.nc VEGAS_S2_gpp_ANN.nc tmp4.nc
-cdo fldsum tmp4.nc tmp5.nc
-cdo mulc,1e-15 tmp5.nc VEGAS_S2_gpp_GLOB.nc
-
-## detrend
-cdo detrend -selyear,1982/2011 -selname,nbp VEGAS_S2_nbp_GLOB.nc VEGAS_S2_nbp_DETR.nc
-cdo detrend -selyear,1982/2011 -selname,gpp VEGAS_S2_gpp_GLOB.nc VEGAS_S2_gpp_DETR.nc
-
-## variance
-cdo timvar VEGAS_S2_nbp_DETR.nc VEGAS_S2_nbp_VAR.nc
-cdo timvar VEGAS_S2_gpp_DETR.nc VEGAS_S2_gpp_VAR.nc
-
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
-cd ../..
+cd $here
 
 
 ##----------------------------------------------------
 ## VISIT
 ##----------------------------------------------------
-cd VISIT/S2
+cd $myhome/data/trendy/v5/VISIT/S2
 
-if [ ! -e VISIT_S2_nbp_ANN.nc ] || [ ! -e VISIT_S2_gpp_ANN.nc ]
+if [[ ! -e VISIT_S2_nbp_ANN.nc || ! -e VISIT_S2_gpp_ANN.nc ]]
 then
 
 	## subset years
@@ -575,33 +387,9 @@ then
 
 fi
 
-## get global totals
-## NBP
-cdo gridarea VISIT_S2_nbp_ANN.nc gridarea.nc
-cdo mulc,1 -seltimestep,1 VISIT_S2_nbp_ANN.nc tmp.nc
-cdo div tmp.nc tmp.nc ones.nc
-cdo selname,nbp ones.nc mask.nc
-cdo mul mask.nc gridarea.nc gridarea_masked.nc
-cdo mul gridarea_masked.nc VISIT_S2_nbp_ANN.nc tmp2.nc
-cdo fldsum tmp2.nc tmp3.nc
-cdo mulc,1e-15 tmp3.nc VISIT_S2_nbp_GLOB.nc
+proc_trendy_single VISIT_S2
 
-## GPP
-cdo mul gridarea_masked.nc VISIT_S2_gpp_ANN.nc tmp4.nc
-cdo fldsum tmp4.nc tmp5.nc
-cdo mulc,1e-15 tmp5.nc VISIT_S2_gpp_GLOB.nc
-
-## detrend
-cdo detrend -selyear,1982/2011 -selname,nbp VISIT_S2_nbp_GLOB.nc VISIT_S2_nbp_DETR.nc
-cdo detrend -selyear,1982/2011 -selname,gpp VISIT_S2_gpp_GLOB.nc VISIT_S2_gpp_DETR.nc
-
-## variance
-cdo timvar VISIT_S2_nbp_DETR.nc VISIT_S2_nbp_VAR.nc
-cdo timvar VISIT_S2_gpp_DETR.nc VISIT_S2_gpp_VAR.nc
-
-## remove temporary files
-rm tmp.nc tmp2.nc tmp3.nc tmp4.nc tmp5.nc gridarea.nc gridarea_masked.nc *SUB.nc *DPM.nc *SPM.nc mask.nc ones.nc
-cd ../..
+cd $here
 
 
 
