@@ -67,6 +67,7 @@ for (idx in 1:nrow(filnams)){
 
 df_rsmodels <- data.frame()
 filnams_rs <- read.csv( "filnams_rsmodels.csv", as.is=TRUE )
+yearrange <- list( l10y=df_rsmodels$model, l30y=c("MTE_FLUXCOM", "MTE", "Pmodel_S0", "Pmodel_S1") )
 # filnams <- list( l10y=filnams_10y, l30y=filnams_30y )
 
 # for (ilen in c("l30y", "l10y")){
@@ -80,9 +81,13 @@ for (idx in seq(nrow(filnams_rs))){
     #   ext <- "_10y"
     # }
 
-  	filn <- paste0( myhome, "data/", filnams_rs$dir[idx], "/", filnams_rs$filename[idx], "_VAR_GLOB20XX.nc")
-    # if (!file.exists(paste0( myhome, basefil, "_VAR", ext, ".nc"))){
-    if (file.exists(filn)){
+    if (filnams_rs$model[idx] %in% yearrange$l30y ){
+      filn <- paste0( myhome, "data/", filnams_rs$dir[idx], "/", filnams_rs$filename[idx], "_VAR_GLOB.nc")
+    } else {
+      filn <- paste0( myhome, "data/", filnams_rs$dir[idx], "/", filnams_rs$filename[idx], "_VAR_GLOB20XX.nc")
+    }
+
+  	if (file.exists(filn)){
 
       print( paste("opening file: ", filn ) )
       nc <- nc_open( filn )
@@ -99,8 +104,9 @@ for (idx in seq(nrow(filnams_rs))){
 	# }
 }
 
+pdf("fig/varGPP_varNBP_emconstr.pdf")
 par(las=1)
-with( df_var, plot( nbp, gpp, pch=16, xlab="var(NBP), PgC/yr", ylab="var(GPP), PgC/yr", xlim=c(0,3.2), ylim=c(0,7) ) )
+with( df_var, plot( nbp, gpp, pch=16, xlab="var(NBP), PgC/yr", ylab="var(GPP), PgC/yr", xlim=c(0,3.4), ylim=c(0,7) ) )
 text( df_var$nbp+0.03, df_var$gpp, df_var$model, adj = 0, cex=0.8 )
 abline( lm( gpp ~ nbp, data=df_var ), lty=2 )
 abline( lm( gpp ~ nbp, data=filter(df_var, model!="LPJ-GUESS") ) )
@@ -110,6 +116,7 @@ abline( h=df_rsmodels$gpp, col=add_alpha("black", 0.3) )
 xvals <- rep(2.0, nrow(df_rsmodels))
 xvals[which(df_rsmodels$model=="VPM")] <- 2.3
 text( xvals, df_rsmodels$gpp, df_rsmodels$model, col=add_alpha("black", 0.5), adj=c(0,-0.05), cex=0.8)
+dev.off()
 
 
 
