@@ -4,7 +4,7 @@ library(ncdf4)
 library(pracma)   # provides function 'detrend'
 library(readr)
 
-# landsink <- read.csv("/Users/benjaminstocker/data/trendy/v5/Global_Carbon_Budget_2016v1.0_landsink.csv", sep=";")
+landsink <- read.csv("/Users/benjaminstocker/data/trendy/v5/Global_Carbon_Budget_2016v1.0_landsink.csv", sep=";")
 
 ##-----------------------------------------------------------
 ## LOAD TRENDY DATA
@@ -382,15 +382,15 @@ if (file.exists("figgdi")){
 ##-----------------------------------------------------------
 ## LPX Schematic simulations
 ##-----------------------------------------------------------
-sims <- c("LPX_luh_S1_low_01", "LPX_luh_S1_mid_01", "LPX_luh_S1_high_01")
+sims <- c("LPX_r0", "LPX_r10", "LPX_r20", "LPX_r30", "LPX_r40", "LPX_r50", "LPX_r100")
 
 df_var_lpx <- tibble()
 
 for (isim in sims){
 
   ## load time series
-  df_gpp <- read.table( paste0( "./data/trans_", isim, ".gpp.out" ) ) %>% select( year=V1, gpp=V2 ) %>% dplyr::filter( year>=1862 )
-  df_nbp <- read.table( paste0( "./data/trans_", isim, ".nep.out" ) ) %>% select( year=V1, nbp=V2 ) %>% dplyr::filter( year>=1862 ) 
+  df_gpp <- read.table( paste0( "./data/trans_", isim, "_01.gpp.out" ) ) %>% select( year=V1, gpp=V2 ) %>% dplyr::filter( year>=1862 )
+  df_nbp <- read.table( paste0( "./data/trans_", isim, "_01.nep.out" ) ) %>% select( year=V1, nbp=V2 ) %>% dplyr::filter( year>=1862 ) 
   df_tmp <- df_gpp %>% left_join( df_nbp, by="year" )
 
   addrow <- df_tmp %>% summarise( model=isim, gpp=sd(gpp), nbp=sd(nbp) )
@@ -407,9 +407,11 @@ save( df_var_lpx, file="data/df_var_lpx.Rdata" )
 ## get linear model for sd(GPP) ~ sd(NBP)
 lm_emcon <- lm( gpp ~ nbp, data=bind_rows( df_var_trendy, df_var_cmip_hist, df_var_cmip_ctrl, df_var_cmip_rcp85, df_var_mstmip_sg1, df_var_mstmip_sg3, df_var_lpx ) )
 lm_emcon_agg <- lm( gpp ~ nbp, data=bind_rows( df_var_trendy, df_var_cmip_hist_agg, df_var_cmip_ctrl_agg, df_var_cmip_rcp85_agg, df_var_mstmip_sg1, df_var_mstmip_sg3, df_var_lpx ) )
+lm_emcon_agg_nolpx <- lm( gpp ~ nbp, data=bind_rows( df_var_trendy, df_var_cmip_hist_agg, df_var_cmip_ctrl_agg, df_var_cmip_rcp85_agg, df_var_mstmip_sg1, df_var_mstmip_sg3 ) )
 
 print(summary(lm_emcon))
 print(summary(lm_emcon_agg))
+print(summary(lm_emcon_agg_nolpx))
 
 ##-----------------------------------------------------------
 ## Plot
@@ -421,62 +423,71 @@ pdf("fig/varGPP_varNBP_emconstr.pdf")
 	## TRENDY
 	# with( df_var_trendy, plot( nbp, gpp, pch=16, xlab="sd(NBP), PgC/yr", ylab="sd(GPP), PgC/yr", xlim=c(0,13), ylim=c(0,32) ) )
   # with( df_var_trendy, plot( nbp, gpp, pch=16, xlab="sd(NBP), PgC/yr", ylab="sd(GPP), PgC/yr", xlim=c(0,13), ylim=c(0,32), type="n" ) )
-  with( df_var_trendy, plot( sqrt(nbp), sqrt(gpp), pch=16, xlab="sd(NBP), PgC/yr", ylab="sd(GPP), PgC/yr", xlim=c(0,6.5), ylim=c(0,11) ) )
-	text( sqrt(df_var_trendy$nbp)+0.05, sqrt(df_var_trendy$gpp), df_var_trendy$model, adj = 0, cex=0.4 )
+  with( df_var_trendy, plot( sqrt(nbp), sqrt(gpp), pch=16, xlab=expression( paste( sigma[NBP], " (PgC yr"^{-1}, ")" )), ylab=expression( paste( sigma[GPP], " (PgC yr"^{-1}, ")" )), xlim=c(0,7.5), ylim=c(0,12) ) )
+	# text( sqrt(df_var_trendy$nbp)+0.07, sqrt(df_var_trendy$gpp), df_var_trendy$model, adj = 0, cex=0.4 )
 
 	# ## CMIP historical (each ensemble member)
 	# with( df_var_cmip_hist, points( nbp, gpp, pch=17, col=add_alpha("tomato", 0.5), cex=0.5 ) )
-	# text( df_var_cmip_hist$nbp+0.05, df_var_cmip_hist$gpp, df_var_cmip_hist$model, adj = 0, cex=0.4, col=add_alpha("tomato", 0.5)  )
+	# text( df_var_cmip_hist$nbp+0.07, df_var_cmip_hist$gpp, df_var_cmip_hist$model, adj = 0, cex=0.4, col=add_alpha("tomato", 0.5)  )
 
 	## CMIP historical (aggregated by ensemble members)
 	with( df_var_cmip_hist_agg, points( nbp, gpp, pch=17, col=add_alpha("tomato", 0.5), cex=1 ) )
-	text( df_var_cmip_hist_agg$nbp+0.05, df_var_cmip_hist_agg$gpp, df_var_cmip_hist_agg$model, adj = 0, cex=0.4, col=add_alpha("tomato",0.5)  )
+	# text( df_var_cmip_hist_agg$nbp+0.07, df_var_cmip_hist_agg$gpp, df_var_cmip_hist_agg$model, adj = 0, cex=0.4, col=add_alpha("tomato",0.5)  )
 
   # ## CMIP RCP8.5 (each ensemble member)
   # with( df_var_cmip_rcp85, points( nbp, gpp, pch=17, col=add_alpha("tomato4", 0.5), cex=0.5 ) )
-  # text( df_var_cmip_rcp85$nbp+0.05, df_var_cmip_rcp85$gpp, df_var_cmip_rcp85$model, adj = 0, cex=0.4, col=add_alpha("tomato4", 0.5)  )
+  # text( df_var_cmip_rcp85$nbp+0.07, df_var_cmip_rcp85$gpp, df_var_cmip_rcp85$model, adj = 0, cex=0.4, col=add_alpha("tomato4", 0.5)  )
 
   ## CMIP RCP8.5 (aggregated by ensemble members)
   with( df_var_cmip_rcp85_agg, points( nbp, gpp, pch=17, col=add_alpha("orchid", 0.5), cex=1 ) )
-  text( df_var_cmip_rcp85_agg$nbp+0.05, df_var_cmip_rcp85_agg$gpp, df_var_cmip_rcp85_agg$model, adj = 0, cex=0.4, col=add_alpha("orchid",0.5)  )
+  # text( df_var_cmip_rcp85_agg$nbp+0.07, df_var_cmip_rcp85_agg$gpp, df_var_cmip_rcp85_agg$model, adj = 0, cex=0.4, col=add_alpha("orchid",0.5)  )
 
   # ## CMIP picontrol (each ensemble member)
   # with( df_var_cmip_ctrl, points( nbp, gpp, pch=17, col=add_alpha("royalblue3", 0.5), cex=0.5 ) )
-  # text( df_var_cmip_ctrl$nbp+0.05, df_var_cmip_ctrl$gpp, df_var_cmip_ctrl$model, adj = 0, cex=0.4, col=add_alpha("royalblue3", 0.5)  )
+  # text( df_var_cmip_ctrl$nbp+0.07, df_var_cmip_ctrl$gpp, df_var_cmip_ctrl$model, adj = 0, cex=0.4, col=add_alpha("royalblue3", 0.5)  )
 
   ## CMIP picontrol (aggregated by ensemble members)
   with( df_var_cmip_ctrl_agg, points( nbp, gpp, pch=17, col=add_alpha("royalblue3", 0.5), cex=1 ) )
-  text( df_var_cmip_ctrl_agg$nbp+0.05, df_var_cmip_ctrl_agg$gpp, df_var_cmip_ctrl_agg$model, adj = 0, cex=0.4, col=add_alpha("royalblue3", 0.5)  )
+  # text( df_var_cmip_ctrl_agg$nbp+0.07, df_var_cmip_ctrl_agg$gpp, df_var_cmip_ctrl_agg$model, adj = 0, cex=0.4, col=add_alpha("royalblue3", 0.5)  )
 
 	## MsTMIP SG1
-	with( df_var_mstmip_sg1, points( sqrt(nbp), sqrt(gpp), pch=17, col=add_alpha("springgreen", 0.7) ) )
-	text( sqrt(df_var_mstmip_sg1$nbp)-0.05, sqrt(df_var_mstmip_sg1$gpp), df_var_mstmip_sg1$model, col=add_alpha("springgreen", 0.7), adj = 1, cex=0.4 )
+	with( df_var_mstmip_sg1, points( sqrt(nbp), sqrt(gpp), pch=18, col=add_alpha("springgreen", 0.7) ) )
+	# text( sqrt(df_var_mstmip_sg1$nbp)-0.07, sqrt(df_var_mstmip_sg1$gpp), df_var_mstmip_sg1$model, col=add_alpha("springgreen", 0.7), adj = 1, cex=0.4 )
 	
 	## MsTMIP SG3
-	with( df_var_mstmip_sg3, points( sqrt(nbp), sqrt(gpp), pch=17, col=add_alpha("springgreen3", 0.6) ) )
-	text( sqrt(df_var_mstmip_sg3$nbp)-0.05, sqrt(df_var_mstmip_sg3$gpp), df_var_mstmip_sg3$model, col=add_alpha("springgreen3", 0.6), adj = 1, cex=0.4 )
+	with( df_var_mstmip_sg3, points( sqrt(nbp), sqrt(gpp), pch=18, col=add_alpha("springgreen3", 0.6) ) )
+	# text( sqrt(df_var_mstmip_sg3$nbp)-0.07, sqrt(df_var_mstmip_sg3$gpp), df_var_mstmip_sg3$model, col=add_alpha("springgreen3", 0.6), adj = 1, cex=0.4 )
 	
   ## Schematic LPX simulations
   with( df_var_lpx, points( nbp, gpp, pch=15, col=add_alpha("black", 1.0) ) )
-  text( df_var_lpx$nbp-0.05, df_var_lpx$gpp, df_var_lpx$model, col=add_alpha("black", 1.0), adj = 1, cex=0.7)
-
+  # text( df_var_lpx$nbp-0.07, df_var_lpx$gpp, df_var_lpx$model, col=add_alpha("black", 1.0), adj = 1, cex=0.7)
 
 	# abline( lm_emcon )
   abline( lm_emcon_agg )
+  abline( lm_emcon_agg_nolpx, lty=3 )
 
-	# ## add vertical line for land sink from budget
-	# abline( v=sd(landsink$budget), col="red")
-	# text( sd(landsink$budget), 6.7, "from budget", col="red" )
+  ## compute confidence bands (for all data) (95% ?)
+  xvals <- seq(-1, 8, 0.1 )
+  confidence <- predict( lm_emcon_agg, data.frame( nbp=xvals ), interval="confidence" ) %>% as.data.frame()
+  polygon( c( xvals, rev(xvals)), c( confidence$lwr, rev(confidence$upr ) ), col = add_alpha("black", 0.2), border = NA )
+
+	## add vertical line for land sink from budget
+	abline( v=sd(landsink$budget), col="red")
+	text( sd(landsink$budget), 6.7, "from budget", col="red" )
 
 	# abline( h=df_rsmodels$gpp, col=add_alpha("black", 0.3) )
 	# xvals <- rep(2.0, nrow(df_rsmodels))
 	# xvals[which(df_rsmodels$model=="VPM")] <- 2.3
-	# text( xvals, df_rsmodels$gpp, df_rsmodels$model, col=add_alpha("black", 0.5), adj=c(0,-0.05), cex=0.8)
+	# text( xvals, df_rsmodels$gpp, df_rsmodels$model, col=add_alpha("black", 0.5), adj=c(0,-0.07), cex=0.8)
 
   legend( "bottomright", c("TRENDY", "CMIP5, historical", "CMIP5, RCP 8.5", "CMIP5, PI-control", "MsTMIP, SG1", "MsTMIP, SG3", "LPX Schematic"), 
     col=c("black", add_alpha("tomato",0.5), add_alpha("orchid",0.5), add_alpha("royalblue3", 0.5), add_alpha("springgreen", 0.7), add_alpha("springgreen3", 0.6), "black"), 
-    pch=c(16,17,16,16), bty = "n", cex=0.8 
+    pch=c(16,17,17,17,18,18,15), bty = "n", cex=0.8 
     )
+  rsq = format( summary( lm_emcon_agg )$adj.r.squared, digits = 2 )
+  rsq_nolpx = format( summary( lm_emcon_agg_nolpx )$adj.r.squared, digits = 2 )
+  
+  legend( "topleft", legend= c( as.expression( bquote( "linear fit, all" ~ italic(R)^2 == .(rsq) ) ), as.expression( bquote( "linear fit, no LPX Schematic" ~ italic(R)^2 == .(rsq_nolpx) ) ) ), lty = c(1,3), bty = "n", cex = 0.8 )
 
 dev.off()
 
