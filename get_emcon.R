@@ -4,7 +4,7 @@ library(ncdf4)
 library(pracma)   # provides function 'detrend'
 library(readr)
 
-landsink <- read.csv("/Users/benjaminstocker/data/trendy/v5/Global_Carbon_Budget_2016v1.0_landsink.csv", sep=";")
+# landsink <- read.csv("/Users/benjaminstocker/data/trendy/v5/Global_Carbon_Budget_2016v1.0_landsink.csv", sep=";")
 
 ##-----------------------------------------------------------
 ## LOAD TRENDY DATA
@@ -133,7 +133,9 @@ filnams_mstmip_sg1 <- read.csv( "filnams_mstmip_sg1.csv", as.is=TRUE )
 
 for (idx in seq(nrow(filnams_mstmip_sg1))){
 
-  filn <- paste0( myhome, "data/mstmip/", filnams_mstmip_sg1$model[idx], "/SG1/", filnams_mstmip_sg1$basename[idx], "_GPP_VAR_GLOB.nc")
+  dirn <- paste0( myhome, "data/mstmip/", filnams_mstmip_sg1$model[idx], "/SG1/" )
+  filn <- paste0( dirn, filnams_mstmip_sg1$basename[idx], "_GPP_VAR_GLOB.nc" )
+  if (!dir.exists(dirn)) system( paste( "mkdir -p", dirn ) )
 	if (file.exists(filn)){
     print( paste("opening file: ", filn ) )
     nc <- nc_open( filn )
@@ -144,7 +146,7 @@ for (idx in seq(nrow(filnams_mstmip_sg1))){
     gpp <- NA
   }
 
-  filn <- paste0( myhome, "data/mstmip/", filnams_mstmip_sg1$model[idx], "/SG1/", filnams_mstmip_sg1$basename[idx], "_NEE_VAR_GLOB.nc")
+  filn <- paste0( dirn, filnams_mstmip_sg1$basename[idx], "_NEE_VAR_GLOB.nc")
 	if (file.exists(filn)){
     print( paste("opening file: ", filn ) )
     nc <- nc_open( filn )
@@ -170,7 +172,9 @@ filnams_mstmip_sg3 <- read.csv( "filnams_mstmip_sg3.csv", as.is=TRUE )
 
 for (idx in seq(nrow(filnams_mstmip_sg3))){
 
-  filn <- paste0( myhome, "data/mstmip/", filnams_mstmip_sg3$model[idx], "/SG3/", filnams_mstmip_sg3$basename[idx], "_GPP_VAR_GLOB.nc")
+  dirn <- paste0( myhome, "data/mstmip/", filnams_mstmip_sg3$model[idx], "/SG3/" )
+  filn <- paste0( dirn, filnams_mstmip_sg3$basename[idx], "_GPP_VAR_GLOB.nc" )
+  if (!dir.exists(dirn)) system( paste( "mkdir -p", dirn ) )
 	if (file.exists(filn)){
     print( paste("opening file: ", filn ) )
     nc <- nc_open( filn )
@@ -181,7 +185,7 @@ for (idx in seq(nrow(filnams_mstmip_sg3))){
     gpp <- NA
   }
 
-  filn <- paste0( myhome, "data/mstmip/", filnams_mstmip_sg3$model[idx], "/SG3/", filnams_mstmip_sg3$basename[idx], "_NEE_VAR_GLOB.nc")
+  filn <- paste0( dirn, filnams_mstmip_sg3$basename[idx], "_NEE_VAR_GLOB.nc")
 	if (file.exists(filn)){
     print( paste("opening file: ", filn ) )
     nc <- nc_open( filn )
@@ -382,7 +386,7 @@ if (file.exists("figgdi")){
 ##-----------------------------------------------------------
 ## LPX Schematic simulations
 ##-----------------------------------------------------------
-sims <- c("LPX_r0", "LPX_r10", "LPX_r20", "LPX_r30", "LPX_r40", "LPX_r50", "LPX_r100")
+sims <- c("LPX_r0", "LPX_r10", "LPX_r20", "LPX_r30", "LPX_r40", "LPX_r50", "LPX_r60", "LPX_r70", "LPX_r80", "LPX_r90", "LPX_r100")
 
 df_var_lpx <- tibble()
 
@@ -460,20 +464,25 @@ pdf("fig/varGPP_varNBP_emconstr.pdf")
 	
   ## Schematic LPX simulations
   with( df_var_lpx, points( nbp, gpp, pch=15, col=add_alpha("black", 1.0) ) )
-  # text( df_var_lpx$nbp-0.07, df_var_lpx$gpp, df_var_lpx$model, col=add_alpha("black", 1.0), adj = 1, cex=0.7)
+  text( df_var_lpx$nbp-0.07, df_var_lpx$gpp, df_var_lpx$model, col=add_alpha("black", 1.0), adj = 1, cex=0.7)
 
 	# abline( lm_emcon )
   abline( lm_emcon_agg )
   abline( lm_emcon_agg_nolpx, lty=3 )
 
-  ## compute confidence bands (for all data) (95% ?)
+  ## compute confidence bands (for all data) (95% ?) for model WITHOUT LPX simulations
+  xvals <- seq(-1, 8, 0.1 )
+  confidence <- predict( lm_emcon_agg_nolpx, data.frame( nbp=xvals ), interval="confidence" ) %>% as.data.frame()
+  polygon( c( xvals, rev(xvals)), c( confidence$lwr, rev(confidence$upr ) ), col = add_alpha("black", 0.2), border = NA )
+
+  ## compute confidence bands (for all data) (95% ?) for model WITH LPX simulations
   xvals <- seq(-1, 8, 0.1 )
   confidence <- predict( lm_emcon_agg, data.frame( nbp=xvals ), interval="confidence" ) %>% as.data.frame()
   polygon( c( xvals, rev(xvals)), c( confidence$lwr, rev(confidence$upr ) ), col = add_alpha("black", 0.2), border = NA )
 
-	## add vertical line for land sink from budget
-	abline( v=sd(landsink$budget), col="red")
-	text( sd(landsink$budget), 6.7, "from budget", col="red" )
+	# ## add vertical line for land sink from budget
+	# abline( v=sd(landsink$budget), col="red")
+	# text( sd(landsink$budget), 6.7, "from budget", col="red" )
 
 	# abline( h=df_rsmodels$gpp, col=add_alpha("black", 0.3) )
 	# xvals <- rep(2.0, nrow(df_rsmodels))
