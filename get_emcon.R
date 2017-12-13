@@ -454,13 +454,13 @@ pdf("fig/varGPP_varNBP_emconstr.pdf")
   with( df_var_cmip_ctrl_agg, points( nbp, gpp, pch=17, col=add_alpha("royalblue3", 0.5), cex=1 ) )
   # text( df_var_cmip_ctrl_agg$nbp+0.07, df_var_cmip_ctrl_agg$gpp, df_var_cmip_ctrl_agg$model, adj = 0, cex=0.4, col=add_alpha("royalblue3", 0.5)  )
 
-	## MsTMIP SG1
-	with( df_var_mstmip_sg1, points( sqrt(nbp), sqrt(gpp), pch=18, col=add_alpha("springgreen", 0.7) ) )
-	# text( sqrt(df_var_mstmip_sg1$nbp)-0.07, sqrt(df_var_mstmip_sg1$gpp), df_var_mstmip_sg1$model, col=add_alpha("springgreen", 0.7), adj = 1, cex=0.4 )
+	# ## MsTMIP SG1
+	# with( df_var_mstmip_sg1, points( sqrt(nbp), sqrt(gpp), pch=18, col=add_alpha("springgreen", 0.7) ) )
+	# # text( sqrt(df_var_mstmip_sg1$nbp)-0.07, sqrt(df_var_mstmip_sg1$gpp), df_var_mstmip_sg1$model, col=add_alpha("springgreen", 0.7), adj = 1, cex=0.4 )
 	
-	## MsTMIP SG3
-	with( df_var_mstmip_sg3, points( sqrt(nbp), sqrt(gpp), pch=18, col=add_alpha("springgreen3", 0.6) ) )
-	# text( sqrt(df_var_mstmip_sg3$nbp)-0.07, sqrt(df_var_mstmip_sg3$gpp), df_var_mstmip_sg3$model, col=add_alpha("springgreen3", 0.6), adj = 1, cex=0.4 )
+	# ## MsTMIP SG3
+	# with( df_var_mstmip_sg3, points( sqrt(nbp), sqrt(gpp), pch=18, col=add_alpha("springgreen3", 0.6) ) )
+	# # text( sqrt(df_var_mstmip_sg3$nbp)-0.07, sqrt(df_var_mstmip_sg3$gpp), df_var_mstmip_sg3$model, col=add_alpha("springgreen3", 0.6), adj = 1, cex=0.4 )
 	
   ## Schematic LPX simulations
   with( df_var_lpx, points( nbp, gpp, pch=15, col=add_alpha("black", 1.0) ) )
@@ -484,10 +484,10 @@ pdf("fig/varGPP_varNBP_emconstr.pdf")
 	# abline( v=sd(landsink$budget), col="red")
 	# text( sd(landsink$budget), 6.7, "from budget", col="red" )
 
-	# abline( h=df_rsmodels$gpp, col=add_alpha("black", 0.3) )
-	# xvals <- rep(2.0, nrow(df_rsmodels))
-	# xvals[which(df_rsmodels$model=="VPM")] <- 2.3
-	# text( xvals, df_rsmodels$gpp, df_rsmodels$model, col=add_alpha("black", 0.5), adj=c(0,-0.07), cex=0.8)
+	abline( h=df_rsmodels$gpp, col=add_alpha("black", 0.3) )
+	xvals <- rep(2.0, nrow(df_rsmodels))
+	xvals[which(df_rsmodels$model=="VPM")] <- 2.3
+	text( xvals, df_rsmodels$gpp, df_rsmodels$model, col=add_alpha("black", 0.5), adj=c(0,-0.07), cex=0.8)
 
   legend( "bottomright", c("TRENDY", "CMIP5, historical", "CMIP5, RCP 8.5", "CMIP5, PI-control", "MsTMIP, SG1", "MsTMIP, SG3", "LPX Schematic"), 
     col=c("black", add_alpha("tomato",0.5), add_alpha("orchid",0.5), add_alpha("royalblue3", 0.5), add_alpha("springgreen", 0.7), add_alpha("springgreen3", 0.6), "black"), 
