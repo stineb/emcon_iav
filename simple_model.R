@@ -1,4 +1,4 @@
-calc_sd_nbp <- function( sd_gpp, f_ra, tau, do.plot=FALSE ){
+calc_sd_nbp <- function( sd_gpp, f_ra, tau, sd_closs, do.plot=FALSE ){
 
   ## Number of time steps
   ntsteps <- 10000
@@ -20,6 +20,10 @@ calc_sd_nbp <- function( sd_gpp, f_ra, tau, do.plot=FALSE ){
     out_c_stock[it] <- c_stock
 
     c_loss <- 1/tau * c_stock + (1-f_ra) * gpp_vec[it]
+
+    ## add noise to c_loss (~disturbance)
+    c_loss <- rnorm( mean = c_loss, sd = sd_closs, n = 1 ) 
+
     c_gain <- gpp_vec[it]
     nbp_vec[it] <- c_gain - c_loss
 
@@ -39,20 +43,17 @@ calc_sd_nbp <- function( sd_gpp, f_ra, tau, do.plot=FALSE ){
   return( sd_nbp )
 }
 
-## Define standard deviation in GPP flux
-sd_gpp <- 2.0
-
 ## Fraction of GPP used for biomass production (ration of NPP:GPP)
 f_ra <- 0.8
 
 ## Turnover time of C in biomass
-tau <- 100
+tau <- 30
 
-sd_nbp <- calc_sd_nbp( sd_gpp, f_ra, tau )
-print( paste( "Standard deviation of NBP:", sd_nbp ) )
+## Standard deviation of respiration/disturbance (C loss), in PgC
+sd_closs <- 10
 
 sd_gpp_vec <- seq( 1, 10, 0.1 )
-sd_nbp_vec <- sapply( sd_gpp_vec, function(x) calc_sd_nbp( x, f_ra, tau ) )
+sd_nbp_vec <- sapply( sd_gpp_vec, function(x) calc_sd_nbp( x, f_ra, tau, sd_closs=sd_closs, x==10 ) )
 
 plot( sd_gpp_vec, sd_nbp_vec, pch=16 )
 
