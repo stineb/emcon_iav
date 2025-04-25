@@ -3,6 +3,7 @@ library(dplyr)
 library(ncdf4)
 library(pracma)   # provides function 'detrend'
 library(readr)
+library(here)
 
 # landsink <- read.csv("/Users/benjaminstocker/data/trendy/v5/Global_Carbon_Budget_2016v1.0_landsink.csv", sep=";")
 
@@ -386,14 +387,14 @@ if (file.exists("figgdi")){
 ##-----------------------------------------------------------
 ## LPX CO2 - schematic simulations
 ##-----------------------------------------------------------
-sims <- c("LPX_r0", "LPX_r10", "LPX_r20", "LPX_r30", "LPX_r40", "LPX_r50", "LPX_r60", "LPX_r70", "LPX_r80", "LPX_r90", "LPX_r100")
+sims <- c("LPX_r0", "LPX_r10", "LPX_r20", "LPX_r30", "LPX_r40", "LPX_r50", "LPX_r100")
 
 df_var_lpx_co2 <- tibble()
 
 for (isim in sims){
 
   ## load time series
-  df_gpp <- read.table( paste0( "./data/trans_", isim, "_01.gpp.out" ) ) %>% select( year=V1, gpp=V2 ) %>% dplyr::filter( year>=1862 )
+  df_gpp <- read.table( here::here(paste0("data/trans_", isim, "_01.gpp.out" ))) %>% select( year=V1, gpp=V2 ) %>% dplyr::filter( year>=1862 )
   df_nbp <- read.table( paste0( "./data/trans_", isim, "_01.nep.out" ) ) %>% select( year=V1, nbp=V2 ) %>% dplyr::filter( year>=1862 ) 
   df_tmp <- df_gpp %>% left_join( df_nbp, by="year" )
 
@@ -404,26 +405,26 @@ for (isim in sims){
 save( df_var_lpx_co2, file="data/df_var_lpx_co2.Rdata" )
 
 
-##-----------------------------------------------------------
-## LPX Climate - schematic simulations
-##-----------------------------------------------------------
-sims <- c("LPX_c1950", "LPX_c2000", "LPX_c2025", "LPX_c2050", "LPX_c2075", "LPX_c2100")
-
-df_var_lpx_cli <- tibble()
-
-for (isim in sims){
-
-  ## load time series
-  df_gpp <- read.table( paste0( "./data/trans_", isim, "_01.gpp.out" ) ) %>% select( year=V1, gpp=V2 ) %>% dplyr::filter( year>=1862 )
-  df_nbp <- read.table( paste0( "./data/trans_", isim, "_01.nep.out" ) ) %>% select( year=V1, nbp=V2 ) %>% dplyr::filter( year>=1862 ) 
-  df_rh  <- read.table( paste0( "./data/trans_", isim, "_01.rh.out"  ) ) %>% select( year=V1, rh =V2 ) %>% dplyr::filter( year>=1862 ) 
-  df_tmp <- df_gpp %>% left_join( df_nbp, by="year" ) %>% left_join( df_rh, by="year" )
-
-  addrow <- df_tmp %>% summarise( model=isim, gpp=sd(gpp), nbp=sd(nbp), rh=sd(rh) )
-  df_var_lpx_cli <- bind_rows( df_var_lpx_cli, addrow )
-
-}
-save( df_var_lpx_cli, file="data/df_var_lpx_cli.Rdata" )
+# ##-----------------------------------------------------------
+# ## LPX Climate - schematic simulations
+# ##-----------------------------------------------------------
+# sims <- c("LPX_c1950", "LPX_c2000", "LPX_c2025", "LPX_c2050", "LPX_c2075", "LPX_c2100")
+# 
+# df_var_lpx_cli <- tibble()
+# 
+# for (isim in sims){
+# 
+#   ## load time series
+#   df_gpp <- read.table( paste0( "./data/trans_", isim, "_01.gpp.out" ) ) %>% select( year=V1, gpp=V2 ) %>% dplyr::filter( year>=1862 )
+#   df_nbp <- read.table( paste0( "./data/trans_", isim, "_01.nep.out" ) ) %>% select( year=V1, nbp=V2 ) %>% dplyr::filter( year>=1862 ) 
+#   df_rh  <- read.table( paste0( "./data/trans_", isim, "_01.rh.out"  ) ) %>% select( year=V1, rh =V2 ) %>% dplyr::filter( year>=1862 ) 
+#   df_tmp <- df_gpp %>% left_join( df_nbp, by="year" ) %>% left_join( df_rh, by="year" )
+# 
+#   addrow <- df_tmp %>% summarise( model=isim, gpp=sd(gpp), nbp=sd(nbp), rh=sd(rh) )
+#   df_var_lpx_cli <- bind_rows( df_var_lpx_cli, addrow )
+# 
+# }
+# save( df_var_lpx_cli, file="data/df_var_lpx_cli.Rdata" )
 
 
 
@@ -431,7 +432,7 @@ save( df_var_lpx_cli, file="data/df_var_lpx_cli.Rdata" )
 lm_emcon <- lm( gpp ~ nbp, data=bind_rows( df_var_trendy, df_var_cmip_hist, df_var_cmip_ctrl, df_var_cmip_rcp85, df_var_mstmip_sg1, df_var_mstmip_sg3, df_var_lpx_co2 ) )
 lm_emcon_agg <- lm( gpp ~ nbp, data=bind_rows( df_var_trendy, df_var_cmip_hist_agg, df_var_cmip_ctrl_agg, df_var_cmip_rcp85_agg, df_var_mstmip_sg1, df_var_mstmip_sg3 ) )
 lm_emcon_lpx_co2 <- lm( gpp ~ nbp, data=bind_rows( df_var_lpx_co2 ) )
-lm_emcon_lpx_cli <- lm( gpp ~ nbp, data=bind_rows( df_var_lpx_cli ) )
+# lm_emcon_lpx_cli <- lm( gpp ~ nbp, data=bind_rows( df_var_lpx_cli ) )
 
 print(summary(lm_emcon))
 print(summary(lm_emcon_agg))
@@ -487,10 +488,10 @@ pdf("fig/varGPP_varNBP_emconstr.pdf")
   with( df_var_lpx_co2, points( nbp, gpp, pch=15, col=add_alpha("black", 1.0) ) )
   text( df_var_lpx_co2$nbp-0.07, df_var_lpx_co2$gpp, df_var_lpx_co2$model, col=add_alpha("black", 1.0), adj = 1, cex=0.7)
 
-  ## Schematic climate LPX simulations
-  with( df_var_lpx_cli, points( nbp, gpp, pch=17, col=add_alpha("black", 1.0) ) )
-  text( df_var_lpx_cli$nbp-0.07, df_var_lpx_cli$gpp, df_var_lpx_cli$model, col=add_alpha("black", 1.0), adj = 1, cex=0.7)
-  
+  # ## Schematic climate LPX simulations
+  # with( df_var_lpx_cli, points( nbp, gpp, pch=17, col=add_alpha("black", 1.0) ) )
+  # text( df_var_lpx_cli$nbp-0.07, df_var_lpx_cli$gpp, df_var_lpx_cli$model, col=add_alpha("black", 1.0), adj = 1, cex=0.7)
+
 	# abline( lm_emcon )
   abline( lm_emcon_agg )
   abline( lm_emcon_lpx_co2, lty=3 )
